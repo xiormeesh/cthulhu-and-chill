@@ -1,0 +1,24 @@
+{
+  "rules": {
+    "games": {
+      "$gameId": {
+        ".read": true,
+        ".write": true,
+        "characters": {
+          "$charId": {
+            ".validate": "newData.hasChildren(['playerName', 'characterName', 'role'])"
+          }
+        },
+        "rolls": {
+          "$rollId": {
+            ".validate": "newData.hasChildren(['playerName', 'dice', 'result', 'timestamp'])"
+          }
+        }
+      }
+    },
+    "activeGameId": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}

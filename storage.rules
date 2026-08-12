@@ -1,0 +1,15 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /games/{gameId}/background {
+      allow read;
+      allow write: if request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+    match /games/{gameId}/portraits/{charId} {
+      allow read;
+      allow write: if request.resource.size < 500 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+  }
+}

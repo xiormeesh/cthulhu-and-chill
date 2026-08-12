@@ -1,0 +1,14 @@
+{
+  "name": "cthulhu-and-chill",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/",
+    "emulators": "npx firebase emulators:start",
+    "serve": "python3 -m http.server 8080"
+  },
+  "devDependencies": {
+    "firebase-tools": "^15.26.0"
+  }
+}
