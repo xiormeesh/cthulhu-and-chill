@@ -446,6 +446,7 @@ function openCharacterModal(mode, charId = null, charData = null) {
 
   function cleanup() {
     modal.hidden = true;
+    submitBtn.disabled = false;
     window.removeEventListener('paste', onPaste);
     portraitWrap.onclick = null;
     fileInput.onchange = null;
@@ -454,6 +455,7 @@ function openCharacterModal(mode, charId = null, charData = null) {
 
   form.onsubmit = async (e) => {
     e.preventDefault();
+    submitBtn.disabled = true;
     const fd = new FormData(form);
 
     if (mode === 'create') {
@@ -953,6 +955,13 @@ function init() {
 
   listenToActiveGame(async (gameId) => {
     await updateGameSelect();
+    elements.resultNumber.textContent = '';
+    elements.resultOutcome.textContent = 'Roll the dice';
+    elements.resultDetail.textContent = '';
+    elements.skillValue.value = '';
+    elements.resultDisplay.className = 'result-display';
+    tray.length = 0;
+    renderTray();
     listenToGame(gameId, (game) => {
       currentGameData = game;
       renderGameHeader(game);

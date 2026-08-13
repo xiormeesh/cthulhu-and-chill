@@ -1182,6 +1182,14 @@ button, input, select, textarea {
   font-family: var(--font-mono);
   font-size: 0.85rem;
   text-align: center;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.char-modal-stat input::-webkit-inner-spin-button,
+.char-modal-stat input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .char-modal .keeper-toggle {
