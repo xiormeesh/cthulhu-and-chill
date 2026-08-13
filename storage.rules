@@ -8,7 +8,7 @@ service firebase.storage {
     }
     match /games/{gameId}/portraits/{charId} {
       allow read;
-      allow write: if request.resource.size < 500 * 1024
+      allow write: if request.resource.size < 1 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }
   }
