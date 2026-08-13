@@ -25,7 +25,7 @@
         <button id="new-game-btn" class="btn-secondary">New Game</button>
       </div>
       <div class="top-bar-right">
-        <div id="music-link-area" class="music-link">🎵 <a href="#" id="music-link">Music</a></div>
+        <div id="music-link-area" class="music-link"><svg class="music-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg> <a href="#" id="music-link">Music</a></div>
         <button id="background-upload-btn" class="btn-secondary">Upload Background</button>
         <input type="file" id="background-file-input" accept="image/*" style="display: none;">
       </div>
@@ -130,6 +130,23 @@
       <button class="btn-add-character">+ Add Character</button>
     </div>
   </template>
+
+  <!-- New Game Modal -->
+  <div id="new-game-modal" class="modal-overlay" hidden>
+    <div class="modal">
+      <h2 class="modal-title">New Game</h2>
+      <form id="new-game-form">
+        <label for="new-game-name">Game Name</label>
+        <input type="text" id="new-game-name" required placeholder="e.g. The Usual Suspects">
+        <label for="new-game-music">Music Link <span class="label-optional">(optional)</span></label>
+        <input type="url" id="new-game-music" placeholder="https://youtube.com/...">
+        <div class="modal-actions">
+          <button type="submit" class="btn-roll">Create</button>
+          <button type="button" id="new-game-cancel" class="btn-secondary">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <script type="module" src="app.js"></script>
 </body>

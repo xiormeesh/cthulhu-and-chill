@@ -1,16 +1,38 @@
-/**
- * Main application logic for Cthulhu & Chill dice roller
- * Checkpoint 2: Dice rolling UI only, no Firebase
- */
-
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
+import {
+  getDatabase, ref, set, get, push, update, onValue,
+  connectDatabaseEmulator
+} from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js';
+import {
+  getStorage, ref as storageRef, uploadBytes, getDownloadURL,
+  connectStorageEmulator
+} from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js';
 import { rollDie, rollDice, rollD100, interpretCoC } from './dice.js';
 
+// Firebase init
+const firebaseConfig = {
+  apiKey: 'demo-key',
+  projectId: 'demo-cthulhu-and-chill',
+  storageBucket: 'demo-cthulhu-and-chill.firebasestorage.app',
+  databaseURL: 'https://demo-cthulhu-and-chill-default-rtdb.firebaseio.com'
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getDatabase(firebaseApp);
+const storage = getStorage(firebaseApp);
+
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+  connectDatabaseEmulator(db, '127.0.0.1', 9000);
+  connectStorageEmulator(storage, '127.0.0.1', 9199);
+}
+
 // State
-const tray = []; // Array of die sizes: [6, 6, 20, etc.]
+let currentGameId = null;
+let currentGameData = null;
+const tray = [];
 
 // DOM elements
 const elements = {
-  // Dice area
   presetButtons: document.querySelectorAll('.btn-die, .btn-d100'),
   trayContent: document.getElementById('tray-content'),
   clearTrayBtn: document.getElementById('clear-tray-btn'),
@@ -20,17 +42,102 @@ const elements = {
   resultNumber: document.getElementById('result-number'),
   resultOutcome: document.getElementById('result-outcome'),
   resultDetail: document.getElementById('result-detail'),
-
-  // Roll log
   rollLogContent: document.getElementById('roll-log-content'),
-
-  // Background
   backgroundUploadBtn: document.getElementById('background-upload-btn'),
   backgroundFileInput: document.getElementById('background-file-input'),
   backgroundLayer: document.getElementById('background-layer'),
+  gameName: document.getElementById('game-name'),
+  gameSelect: document.getElementById('game-select'),
+  newGameBtn: document.getElementById('new-game-btn'),
+  musicLinkArea: document.getElementById('music-link-area'),
+  musicLink: document.getElementById('music-link'),
 };
 
-// Format helpers
+// --- Game management ---
+
+async function createGame(name, musicLink = '') {
+  const gamesRef = ref(db, 'games');
+  const newGameRef = push(gamesRef);
+  await set(newGameRef, {
+    name,
+    musicLink,
+    backgroundImage: ''
+  });
+  await set(ref(db, 'activeGameId'), newGameRef.key);
+  return newGameRef.key;
+}
+
+async function loadGameList() {
+  const snapshot = await get(ref(db, 'games'));
+  const games = [];
+  if (snapshot.exists()) {
+    snapshot.forEach(child => {
+      games.push({ id: child.key, ...child.val() });
+    });
+  }
+  return games;
+}
+
+async function switchGame(gameId) {
+  await set(ref(db, 'activeGameId'), gameId);
+}
+
+function listenToActiveGame(callback) {
+  onValue(ref(db, 'activeGameId'), (snapshot) => {
+    const gameId = snapshot.val();
+    if (gameId && gameId !== currentGameId) {
+      currentGameId = gameId;
+      callback(gameId);
+    }
+  });
+}
+
+let currentGameListener = null;
+
+function listenToGame(gameId, callback) {
+  if (currentGameListener) currentGameListener();
+  currentGameListener = onValue(ref(db, `games/${gameId}`), (snapshot) => {
+    if (snapshot.exists()) {
+      callback({ id: gameId, ...snapshot.val() });
+    }
+  });
+}
+
+async function updateGameSelect() {
+  const games = await loadGameList();
+  elements.gameSelect.innerHTML = '';
+  if (games.length === 0) {
+    elements.gameSelect.innerHTML = '<option value="">No games yet</option>';
+    return;
+  }
+  games.forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g.id;
+    opt.textContent = g.name;
+    if (g.id === currentGameId) opt.selected = true;
+    elements.gameSelect.appendChild(opt);
+  });
+}
+
+function isValidUrl(str) {
+  return /^https?:\/\//i.test(str);
+}
+
+function renderGameHeader(game) {
+  elements.gameName.textContent = game.name || 'New Game';
+  if (game.musicLink && isValidUrl(game.musicLink)) {
+    elements.musicLink.href = game.musicLink;
+    elements.musicLink.textContent = 'Music';
+    elements.musicLink.target = '_blank';
+    elements.musicLink.rel = 'noopener';
+  } else {
+    elements.musicLink.href = '#';
+    elements.musicLink.textContent = game.musicLink ? 'Music (invalid link)' : 'Music';
+  }
+}
+
+// --- Format helpers ---
+
 function formatOutcome(outcome) {
   const labels = {
     critical_success: 'Critical Success!',
@@ -47,7 +154,8 @@ function padToTwoDigits(num) {
   return num.toString().padStart(2, '0');
 }
 
-// Tray management
+// --- Tray management ---
+
 function addToTray(sides) {
   tray.push(sides);
   renderTray();
@@ -68,7 +176,6 @@ function renderTray() {
     elements.trayContent.innerHTML = '<span class="tray-empty">Empty</span>';
     return;
   }
-
   elements.trayContent.innerHTML = '';
   tray.forEach((sides, index) => {
     const chip = document.createElement('span');
@@ -79,39 +186,29 @@ function renderTray() {
   });
 }
 
-// Result display
+// --- Result display ---
+
 function displayResult(number, outcome = null, detail = '') {
-  // Clear previous outcome classes
   elements.resultDisplay.className = 'result-display';
-
-  // Set number
   elements.resultNumber.textContent = number;
-
-  // Set outcome and apply color class if provided
   if (outcome) {
     elements.resultOutcome.textContent = formatOutcome(outcome);
     elements.resultDisplay.classList.add(`outcome-${outcome}`);
   } else {
     elements.resultOutcome.textContent = '';
   }
-
-  // Set detail
   elements.resultDetail.textContent = detail;
 }
 
-// Roll log
+// --- Roll log (local for now, Firebase in checkpoint 5) ---
+
 function addToLog(message, outcome = null) {
-  // Remove empty message if present
   const emptyMsg = elements.rollLogContent.querySelector('.log-empty');
-  if (emptyMsg) {
-    emptyMsg.remove();
-  }
+  if (emptyMsg) emptyMsg.remove();
 
   const entry = document.createElement('div');
   entry.className = 'log-entry';
-  if (outcome) {
-    entry.classList.add(outcome);
-  }
+  if (outcome) entry.classList.add(outcome);
 
   const timestamp = new Date().toLocaleTimeString();
   entry.textContent = `[${timestamp}] ${message}`;
@@ -120,18 +217,15 @@ function addToLog(message, outcome = null) {
   elements.rollLogContent.scrollTop = 0;
 }
 
-// Roll handlers
+// --- Roll handlers ---
+
 function rollD100WithSkill() {
   const roll = rollD100();
   const skill = parseInt(elements.skillValue.value) || 0;
 
-  let outcome = null;
-  let detail = '';
-
   if (skill > 0) {
-    outcome = interpretCoC(roll, skill);
-    detail = `Skill: ${skill}%`;
-    displayResult(padToTwoDigits(roll), outcome, detail);
+    const outcome = interpretCoC(roll, skill);
+    displayResult(padToTwoDigits(roll), outcome, `Skill: ${skill}%`);
     addToLog(`d100: ${padToTwoDigits(roll)} vs ${skill}% → ${formatOutcome(outcome)}`, outcome);
   } else {
     displayResult(padToTwoDigits(roll), null, 'Enter skill % for interpretation');
@@ -144,56 +238,107 @@ function rollTray() {
     rollD100WithSkill();
     return;
   }
-
-  // Roll all dice in tray
   const results = tray.map(sides => ({ sides, result: rollDie(sides) }));
   const total = results.reduce((sum, r) => sum + r.result, 0);
-
-  // Display
-  const resultText = results.map(r => `${r.result}`).join(' + ');
   const detail = results.map(r => `d${r.sides}: ${r.result}`).join(', ');
+  const diceList = tray.map(sides => `d${sides}`).join(', ');
 
   displayResult(total, null, detail);
-
-  // Log
-  const diceList = tray.map(sides => `d${sides}`).join(', ');
-  addToLog(`[${diceList}] → ${resultText} = ${total}`);
-
-  // Clear tray after rolling
+  addToLog(`[${diceList}] → ${results.map(r => r.result).join(' + ')} = ${total}`);
   clearTray();
 }
 
-// Event listeners
+// --- Event listeners ---
+
 function setupEventListeners() {
-  // Preset buttons
   elements.presetButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const sides = parseInt(btn.dataset.die);
-
       if (sides === 100) {
-        // d100 rolls immediately with CoC interpretation
         rollD100WithSkill();
       } else {
-        // Other dice add to tray
         addToTray(sides);
       }
     });
   });
 
-  // Clear tray button
   elements.clearTrayBtn.addEventListener('click', clearTray);
-
-  // Roll button
   elements.rollBtn.addEventListener('click', rollTray);
 
-  // Background upload
+  // New Game modal
+  const modal = document.getElementById('new-game-modal');
+  const newGameForm = document.getElementById('new-game-form');
+  const newGameNameInput = document.getElementById('new-game-name');
+  const newGameMusicInput = document.getElementById('new-game-music');
+  const newGameCancel = document.getElementById('new-game-cancel');
+
+  elements.newGameBtn.addEventListener('click', () => {
+    newGameForm.reset();
+    modal.hidden = false;
+    newGameNameInput.focus();
+  });
+
+  newGameCancel.addEventListener('click', () => {
+    modal.hidden = true;
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.hidden = true;
+  });
+
+  newGameForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = newGameNameInput.value.trim();
+    if (!name) return;
+    const musicLink = newGameMusicInput.value.trim();
+    modal.hidden = true;
+    await createGame(name, musicLink);
+  });
+
+  // Game select
+  elements.gameSelect.addEventListener('change', async (e) => {
+    const gameId = e.target.value;
+    if (!gameId) return;
+    if (gameId === currentGameId) return;
+    await switchGame(gameId);
+  });
+
+  // Music link — click to edit
+  elements.musicLink.addEventListener('click', (e) => {
+    if (!currentGameId) return;
+    if (currentGameData?.musicLink) return;
+    e.preventDefault();
+    const url = prompt('Music link (YouTube, Spotify, etc.):');
+    if (url !== null) {
+      update(ref(db, `games/${currentGameId}`), { musicLink: url });
+    }
+  });
+
+  // Long-click music area to edit existing link
+  elements.musicLinkArea.addEventListener('dblclick', (e) => {
+    if (!currentGameId) return;
+    e.preventDefault();
+    const url = prompt('Update music link:', currentGameData?.musicLink || '');
+    if (url !== null) {
+      update(ref(db, `games/${currentGameId}`), { musicLink: url });
+    }
+  });
+
+  // Background upload — store in Firebase Storage when game exists
   elements.backgroundUploadBtn.addEventListener('click', () => {
     elements.backgroundFileInput.click();
   });
 
-  elements.backgroundFileInput.addEventListener('change', (e) => {
+  elements.backgroundFileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
-    if (file) {
+    if (!file) return;
+
+    if (currentGameId) {
+      const bgRef = storageRef(storage, `games/${currentGameId}/background`);
+      await uploadBytes(bgRef, file, { contentType: file.type });
+      const url = await getDownloadURL(bgRef);
+      await update(ref(db, `games/${currentGameId}`), { backgroundImage: url });
+    } else {
       const reader = new FileReader();
       reader.onload = (event) => {
         elements.backgroundLayer.style.backgroundImage = `url(${event.target.result})`;
@@ -203,14 +348,27 @@ function setupEventListeners() {
   });
 }
 
-// Initialize
+// --- Initialize ---
+
 function init() {
   renderTray();
   setupEventListeners();
-  console.log('Cthulhu & Chill dice roller initialized');
+
+  listenToActiveGame(async (gameId) => {
+    await updateGameSelect();
+    listenToGame(gameId, (game) => {
+      currentGameData = game;
+      renderGameHeader(game);
+      if (game.backgroundImage) {
+        elements.backgroundLayer.style.backgroundImage = `url(${game.backgroundImage})`;
+      }
+    });
+  });
+
+  updateGameSelect();
+  console.log('Cthulhu & Chill initialized');
 }
 
-// Run on DOM ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {

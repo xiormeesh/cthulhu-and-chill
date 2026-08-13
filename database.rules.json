@@ -1,8 +1,8 @@
 {
   "rules": {
     "games": {
+      ".read": true,
       "$gameId": {
-        ".read": true,
         ".write": true,
         "characters": {
           "$charId": {

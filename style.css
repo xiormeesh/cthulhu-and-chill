@@ -122,6 +122,14 @@ button, input, select, textarea {
 
 .music-link {
   color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.music-icon {
+  color: var(--accent);
+  opacity: 0.7;
 }
 
 .music-link a {
@@ -568,6 +576,84 @@ button, input, select, textarea {
   background: var(--bg-dark);
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-overlay[hidden] {
+  display: none;
+}
+
+.modal {
+  background: var(--bg-mid);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  padding: 2rem;
+  width: 360px;
+  max-width: 90vw;
+}
+
+.modal-title {
+  font-family: var(--font-heading);
+  color: var(--accent);
+  margin-bottom: 1.5rem;
+  font-size: 1.3rem;
+  letter-spacing: 0.05em;
+}
+
+.modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.modal label {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+.label-optional {
+  font-style: italic;
+  opacity: 0.6;
+}
+
+.modal input[type="text"],
+.modal input[type="url"] {
+  background: var(--bg-dark);
+  color: var(--text);
+  border: 1px solid var(--border-card);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.95rem;
+}
+
+.modal input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.modal-actions .btn-roll {
+  flex: 1;
+}
+
+.modal-actions .btn-secondary {
+  flex: 1;
 }
 
 /* Scrollbar styling */
