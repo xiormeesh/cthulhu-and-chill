@@ -59,6 +59,16 @@ const elements = {
 const MAX_GAMES = 10;
 const MAX_PORTRAIT_SIZE = 1 * 1024 * 1024;
 const MAX_BACKGROUND_SIZE = 5 * 1024 * 1024;
+const DEFAULT_AVATARS = [
+  'avatar-bat.svg', 'avatar-beast-eye.svg', 'avatar-book.svg', 'avatar-brain.svg',
+  'avatar-daemon.svg', 'avatar-dragon.svg', 'avatar-eye.svg', 'avatar-eyestalk.svg',
+  'avatar-fish.svg', 'avatar-flesh.svg', 'avatar-gargoyle.svg', 'avatar-ghost.svg',
+  'avatar-haunting.svg', 'avatar-hydra.svg', 'avatar-infested.svg', 'avatar-kraken.svg',
+  'avatar-medusa.svg', 'avatar-mummy.svg', 'avatar-reaper.svg', 'avatar-sea-creature.svg',
+  'avatar-shade.svg', 'avatar-shadow.svg', 'avatar-skull.svg', 'avatar-spectre.svg',
+  'avatar-spider.svg', 'avatar-spiked-dragon.svg', 'avatar-tentacles.svg',
+  'avatar-vampire.svg', 'avatar-werewolf.svg', 'avatar-zombie.svg',
+].map(f => `icons/${f}`);
 
 async function createGame(name, musicLink = '', frameStyle = 'vintage') {
   const snapshot = await get(ref(db, 'games'));
@@ -104,13 +114,22 @@ function listenToActiveGame(callback) {
 }
 
 let currentGameListener = null;
+let currentRollsListener = null;
 
 function listenToGame(gameId, callback) {
   if (currentGameListener) currentGameListener();
+  if (currentRollsListener) currentRollsListener();
+
   currentGameListener = onValue(ref(db, `games/${gameId}`), (snapshot) => {
     if (snapshot.exists()) {
-      callback({ id: gameId, ...snapshot.val() });
+      const data = snapshot.val();
+      const { rolls, ...gameWithoutRolls } = data;
+      callback({ id: gameId, ...gameWithoutRolls });
     }
+  });
+
+  currentRollsListener = onValue(ref(db, `games/${gameId}/rolls`), (snapshot) => {
+    renderRollLog(snapshot.val());
   });
 }
 
@@ -137,13 +156,15 @@ function isValidUrl(str) {
 function renderGameHeader(game) {
   elements.gameName.textContent = game.name || 'New Game';
   if (game.musicLink && isValidUrl(game.musicLink)) {
+    elements.musicLinkArea.hidden = false;
     elements.musicLink.href = game.musicLink;
     elements.musicLink.textContent = 'Music';
     elements.musicLink.target = '_blank';
     elements.musicLink.rel = 'noopener';
   } else {
+    elements.musicLinkArea.hidden = !game.musicLink;
     elements.musicLink.href = '#';
-    elements.musicLink.textContent = game.musicLink ? 'Music (invalid link)' : 'Music';
+    elements.musicLink.textContent = 'Music (invalid link)';
   }
 }
 
@@ -169,8 +190,15 @@ function getLinkedCharacterId() {
 
 // --- Character CRUD ---
 
-async function addCharacter({ playerName, characterName, hp, sanity, luck, role }) {
+async function addCharacter({ playerName, characterName, hp, sanity, luck, role, portrait }) {
   if (!currentGameId) return null;
+  if (role === 'keeper' && currentGameData?.characters) {
+    const hasKeeper = Object.values(currentGameData.characters).some(c => c.role === 'keeper');
+    if (hasKeeper) {
+      alert('This game already has a Keeper.');
+      return null;
+    }
+  }
   const charsRef = ref(db, `games/${currentGameId}/characters`);
   const newCharRef = push(charsRef);
   await set(newCharRef, {
@@ -180,6 +208,7 @@ async function addCharacter({ playerName, characterName, hp, sanity, luck, role 
     hp: parseInt(hp, 10) || 0,
     sanity: parseInt(sanity, 10) || 0,
     luck: parseInt(luck, 10) || 0,
+    portrait: portrait || DEFAULT_AVATARS[Math.floor(Math.random() * DEFAULT_AVATARS.length)],
   });
   setIdentityForGame(currentGameId, newCharRef.key);
   return newCharRef.key;
@@ -237,9 +266,10 @@ function createCharacterTile(charId, char, isSelf) {
   if (char.portrait) {
     img.src = char.portrait;
     img.alt = char.characterName;
+    if (char.portrait.startsWith('icons/')) img.classList.add('default-avatar');
   }
 
-  // Claim button — always visible, styled differently when claimed
+  // Claim button
   const claimBtn = tile.querySelector('.btn-tile-claim');
   if (isSelf) {
     claimBtn.classList.add('claimed');
@@ -251,71 +281,15 @@ function createCharacterTile(charId, char, isSelf) {
     });
   }
 
-  // Edit button — only for claimed character
+  // Edit button — opens character modal
   const editBtn = tile.querySelector('.btn-tile-edit');
   if (!isSelf) {
     editBtn.hidden = true;
   } else {
-    const editPlayerName = tile.querySelector('.edit-player-name');
-    const editCharName = tile.querySelector('.edit-character-name');
-    const avatarUploadBtn = tile.querySelector('.btn-upload-avatar');
-    const avatarFileInput = tile.querySelector('.avatar-file-input');
-
-    const setStatsEditable = (enabled) => {
-      tile.querySelectorAll('.stat-dec, .stat-inc, .stat-value').forEach(el => {
-        el.disabled = !enabled;
-      });
-    };
-
-    editBtn.addEventListener('click', () => {
-      tile.classList.add('editing');
-      editPlayerName.value = char.playerName;
-      editCharName.value = char.characterName;
-      setStatsEditable(true);
-    });
-
-    tile.querySelector('.btn-cancel-edit').addEventListener('click', () => {
-      tile.classList.remove('editing');
-      setStatsEditable(false);
-    });
-
-    tile.querySelector('.btn-save-edit').addEventListener('click', async () => {
-      const newPlayerName = editPlayerName.value.trim();
-      const newCharName = editCharName.value.trim();
-      if (newPlayerName) await updateCharacterField(charId, 'playerName', newPlayerName);
-      if (newCharName) await updateCharacterField(charId, 'characterName', newCharName);
-      tile.classList.remove('editing');
-      setStatsEditable(false);
-    });
-
-    async function uploadAvatar(file) {
-      if (!file || !currentGameId) return;
-      if (!file.type.startsWith('image/')) {
-        alert('Please upload an image file.');
-        return;
-      }
-      if (file.size > MAX_PORTRAIT_SIZE) {
-        alert('Portrait must be under 1 MB.');
-        return;
-      }
-      const portraitRef = storageRef(storage, `games/${currentGameId}/portraits/${charId}`);
-      await uploadBytes(portraitRef, file, { contentType: file.type });
-      const url = await getDownloadURL(portraitRef);
-      await updateCharacterField(charId, 'portrait', url);
-    }
-
-    avatarUploadBtn.addEventListener('click', () => avatarFileInput.click());
-    avatarFileInput.addEventListener('change', (e) => uploadAvatar(e.target.files[0]));
-
-    const portraitWrap = tile.querySelector('.tile-portrait-wrap');
-    portraitWrap.addEventListener('click', () => {
-      if (tile.classList.contains('editing')) avatarFileInput.click();
-    });
-
-    tile._uploadAvatar = uploadAvatar;
+    editBtn.addEventListener('click', () => openCharacterModal('edit', charId, char));
   }
 
-  // Stats — display for all, editable in edit mode for claimed
+  // Stats — display for all, +/- for claimed character
   if (char.role !== 'keeper') {
     tile.querySelectorAll('.stat').forEach(statEl => {
       const statName = statEl.dataset.stat;
@@ -358,43 +332,170 @@ function createAddCharacterTile() {
   const template = document.getElementById('add-character-template');
   const tile = template.content.cloneNode(true).querySelector('.add-character-tile');
   const btn = tile.querySelector('.btn-add-character');
-  const form = tile.querySelector('.add-character-form');
   const frameStyle = currentGameData?.frameStyle || 'engraved';
   const [color, hover] = FRAME_COLORS[frameStyle] || FRAME_COLORS.engraved;
   tile.style.setProperty('--add-char-color', color);
   tile.style.setProperty('--add-char-color-hover', hover);
-  const keeperCheckbox = form.querySelector('input[name="isKeeper"]');
-  const statsDiv = form.querySelector('.add-char-stats');
 
-  btn.addEventListener('click', () => {
-    btn.hidden = true;
-    form.hidden = false;
-  });
-
-  tile.querySelector('.add-char-cancel').addEventListener('click', () => {
-    btn.hidden = false;
-    form.hidden = true;
-    form.reset();
-  });
-
-  keeperCheckbox.addEventListener('change', () => {
-    statsDiv.hidden = keeperCheckbox.checked;
-  });
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fd = new FormData(form);
-    await addCharacter({
-      playerName: fd.get('playerName'),
-      characterName: fd.get('characterName'),
-      hp: fd.get('hp'),
-      sanity: fd.get('sanity'),
-      luck: fd.get('luck'),
-      role: keeperCheckbox.checked ? 'keeper' : 'player',
-    });
-  });
+  btn.addEventListener('click', () => openCharacterModal('create'));
 
   return tile;
+}
+
+// --- Character modal (create & edit) ---
+
+let charModalAvatarBlob = null;
+let charModalAvatarPreview = null;
+
+function openCharacterModal(mode, charId = null, charData = null) {
+  const modal = document.getElementById('char-modal');
+  const form = document.getElementById('char-modal-form');
+  const title = document.getElementById('char-modal-title');
+  const portrait = document.getElementById('char-modal-portrait');
+  const portraitWrap = document.getElementById('char-modal-portrait-wrap');
+  const fileInput = document.getElementById('char-modal-file-input');
+  const keeperToggle = document.getElementById('char-modal-keeper-toggle');
+  const keeperCb = document.getElementById('char-modal-keeper-cb');
+  const statsDiv = document.getElementById('char-modal-stats');
+  const submitBtn = document.getElementById('char-modal-submit');
+
+  charModalAvatarBlob = null;
+  charModalAvatarPreview = null;
+  form.reset();
+
+  if (mode === 'create') {
+    title.textContent = 'New Character';
+    submitBtn.textContent = 'Join';
+    const hasKeeper = currentGameData?.characters &&
+      Object.values(currentGameData.characters).some(c => c.role === 'keeper');
+    keeperToggle.hidden = hasKeeper;
+    keeperCb.checked = false;
+    statsDiv.hidden = false;
+    const randomAvatar = DEFAULT_AVATARS[Math.floor(Math.random() * DEFAULT_AVATARS.length)];
+    portrait.src = randomAvatar;
+    portrait.classList.add('default-avatar');
+    charModalAvatarPreview = randomAvatar;
+  } else {
+    title.textContent = 'Edit Character';
+    submitBtn.textContent = 'Save';
+    keeperToggle.hidden = true;
+    statsDiv.hidden = charData.role === 'keeper';
+    form.elements.playerName.value = charData.playerName;
+    form.elements.characterName.value = charData.characterName;
+    if (charData.role !== 'keeper') {
+      form.elements.hp.value = charData.hp || 0;
+      form.elements.sanity.value = charData.sanity || 0;
+      form.elements.luck.value = charData.luck || 0;
+    }
+    if (charData.portrait) {
+      portrait.src = charData.portrait;
+      portrait.classList.toggle('default-avatar', charData.portrait.startsWith('icons/'));
+      charModalAvatarPreview = charData.portrait;
+    } else {
+      portrait.src = '';
+    }
+  }
+
+  keeperCb.addEventListener('change', () => {
+    statsDiv.hidden = keeperCb.checked;
+  });
+
+  async function handleAvatarFile(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const croppedBlob = await openCropModal(file);
+    if (!croppedBlob) return;
+    charModalAvatarBlob = croppedBlob;
+    const url = URL.createObjectURL(croppedBlob);
+    portrait.src = url;
+    portrait.classList.remove('default-avatar');
+    charModalAvatarPreview = url;
+  }
+
+  portraitWrap.onclick = () => fileInput.click();
+  fileInput.onchange = (e) => handleAvatarFile(e.target.files[0]);
+
+  function onPaste(e) {
+    if (modal.hidden) return;
+    const cd = e.clipboardData;
+    if (!cd) return;
+    if (cd.items) {
+      for (const item of cd.items) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          handleAvatarFile(item.getAsFile());
+          return;
+        }
+      }
+    }
+    if (cd.files?.length) {
+      for (const file of cd.files) {
+        if (file.type.startsWith('image/')) {
+          e.preventDefault();
+          handleAvatarFile(file);
+          return;
+        }
+      }
+    }
+  }
+  window.addEventListener('paste', onPaste);
+
+  modal.hidden = false;
+
+  function cleanup() {
+    modal.hidden = true;
+    window.removeEventListener('paste', onPaste);
+    portraitWrap.onclick = null;
+    fileInput.onchange = null;
+    form.onsubmit = null;
+  }
+
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+
+    if (mode === 'create') {
+      const role = keeperCb.checked ? 'keeper' : 'player';
+      const defaultPortrait = !charModalAvatarBlob ? charModalAvatarPreview : undefined;
+      const newCharId = await addCharacter({
+        playerName: fd.get('playerName'),
+        characterName: fd.get('characterName'),
+        hp: fd.get('hp'),
+        sanity: fd.get('sanity'),
+        luck: fd.get('luck'),
+        role,
+        portrait: defaultPortrait,
+      });
+      if (!newCharId) { cleanup(); return; }
+      if (charModalAvatarBlob) {
+        const portraitRef = storageRef(storage, `games/${currentGameId}/portraits/${newCharId}`);
+        await uploadBytes(portraitRef, charModalAvatarBlob, { contentType: 'image/png' });
+        const url = await getDownloadURL(portraitRef);
+        await updateCharacterField(newCharId, 'portrait', url);
+      }
+    } else {
+      const newPlayerName = fd.get('playerName').trim();
+      const newCharName = fd.get('characterName').trim();
+      if (newPlayerName) await updateCharacterField(charId, 'playerName', newPlayerName);
+      if (newCharName) await updateCharacterField(charId, 'characterName', newCharName);
+      if (charData.role !== 'keeper') {
+        await updateCharacterField(charId, 'hp', parseInt(fd.get('hp'), 10) || 0);
+        await updateCharacterField(charId, 'sanity', parseInt(fd.get('sanity'), 10) || 0);
+        await updateCharacterField(charId, 'luck', parseInt(fd.get('luck'), 10) || 0);
+      }
+      if (charModalAvatarBlob) {
+        const portraitRef = storageRef(storage, `games/${currentGameId}/portraits/${charId}`);
+        await uploadBytes(portraitRef, charModalAvatarBlob, { contentType: 'image/png' });
+        const url = await getDownloadURL(portraitRef);
+        await updateCharacterField(charId, 'portrait', url);
+      }
+    }
+    cleanup();
+  };
+
+  document.getElementById('char-modal-cancel').onclick = cleanup;
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) cleanup();
+  }, { once: true });
 }
 
 function updateRollIdentity(characters) {
@@ -459,6 +560,130 @@ function renderTray() {
   });
 }
 
+// --- Portrait crop modal ---
+
+const CROP_SIZE = 256;
+
+function openCropModal(file) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('crop-modal');
+    const img = document.getElementById('crop-image');
+    const viewport = modal.querySelector('.crop-viewport');
+    const confirmBtn = document.getElementById('crop-confirm');
+    const cancelBtn = document.getElementById('crop-cancel');
+
+    let offsetX = 0, offsetY = 0, scale = 1;
+    let dragging = false, startX, startY, startOffsetX, startOffsetY;
+
+    modal.hidden = false;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      img.onload = () => {
+        const vw = viewport.clientWidth;
+        const vh = viewport.clientHeight;
+        scale = Math.max(vw / img.naturalWidth, vh / img.naturalHeight);
+        offsetX = (vw - img.naturalWidth * scale) / 2;
+        offsetY = (vh - img.naturalHeight * scale) / 2;
+        applyTransform();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+
+    function applyTransform() {
+      img.style.width = (img.naturalWidth * scale) + 'px';
+      img.style.height = (img.naturalHeight * scale) + 'px';
+      img.style.left = offsetX + 'px';
+      img.style.top = offsetY + 'px';
+    }
+
+    function clampOffset() {
+      const vw = viewport.clientWidth;
+      const vh = viewport.clientHeight;
+      const iw = img.naturalWidth * scale;
+      const ih = img.naturalHeight * scale;
+      offsetX = Math.min(0, Math.max(vw - iw, offsetX));
+      offsetY = Math.min(0, Math.max(vh - ih, offsetY));
+    }
+
+    function onPointerDown(e) {
+      dragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      startOffsetX = offsetX;
+      startOffsetY = offsetY;
+      e.preventDefault();
+    }
+
+    function onPointerMove(e) {
+      if (!dragging) return;
+      offsetX = startOffsetX + (e.clientX - startX);
+      offsetY = startOffsetY + (e.clientY - startY);
+      clampOffset();
+      applyTransform();
+    }
+
+    function onPointerUp() {
+      dragging = false;
+    }
+
+    function onWheel(e) {
+      e.preventDefault();
+      const vw = viewport.clientWidth;
+      const vh = viewport.clientHeight;
+      const minScale = Math.max(vw / img.naturalWidth, vh / img.naturalHeight);
+      const delta = e.deltaY > 0 ? 0.95 : 1.05;
+      scale = Math.max(minScale, scale * delta);
+      clampOffset();
+      applyTransform();
+    }
+
+    viewport.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    viewport.addEventListener('wheel', onWheel, { passive: false });
+
+    function cleanup() {
+      modal.hidden = true;
+      viewport.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      viewport.removeEventListener('wheel', onWheel);
+      confirmBtn.onclick = null;
+      cancelBtn.onclick = null;
+    }
+
+    confirmBtn.onclick = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = CROP_SIZE;
+      canvas.height = CROP_SIZE;
+      const ctx = canvas.getContext('2d');
+      const vw = viewport.clientWidth;
+      const sx = -offsetX / scale;
+      const sy = -offsetY / scale;
+      const sSize = vw / scale;
+      ctx.drawImage(img, sx, sy, sSize, sSize, 0, 0, CROP_SIZE, CROP_SIZE);
+      canvas.toBlob((blob) => {
+        cleanup();
+        resolve(blob);
+      }, 'image/png');
+    };
+
+    cancelBtn.onclick = () => {
+      cleanup();
+      resolve(null);
+    };
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        cleanup();
+        resolve(null);
+      }
+    }, { once: true });
+  });
+}
+
 // --- Result display ---
 
 function displayResult(number, outcome = null, detail = '') {
@@ -473,7 +698,7 @@ function displayResult(number, outcome = null, detail = '') {
   elements.resultDetail.textContent = detail;
 }
 
-// --- Roll log (local for now, Firebase in checkpoint 5) ---
+// --- Roll log (Firebase-synced) ---
 
 function getRollerName() {
   const linkedId = getLinkedCharacterId();
@@ -484,39 +709,63 @@ function getRollerName() {
   return 'Anonymous';
 }
 
-function addToLog(message, outcome = null) {
-  const emptyMsg = elements.rollLogContent.querySelector('.log-empty');
-  if (emptyMsg) emptyMsg.remove();
+async function saveRoll(message, outcome = null) {
+  if (!currentGameId) return;
+  const rollsRef = ref(db, `games/${currentGameId}/rolls`);
+  await push(rollsRef, {
+    playerName: getRollerName(),
+    message,
+    outcome: outcome || '',
+    timestamp: Date.now(),
+  });
+}
 
-  const entry = document.createElement('div');
-  entry.className = 'log-entry';
-  if (outcome) entry.classList.add(outcome);
+function renderRollLog(rolls) {
+  elements.rollLogContent.innerHTML = '';
+  if (!rolls) return;
 
-  entry.textContent = `${getRollerName()}: ${message}`;
+  const entries = Object.values(rolls)
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 30);
 
-  elements.rollLogContent.prepend(entry);
-  elements.rollLogContent.scrollTop = 0;
+  entries.forEach(roll => {
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    if (roll.outcome) entry.classList.add(roll.outcome);
+
+    const player = document.createElement('span');
+    player.className = 'log-player';
+    player.textContent = roll.playerName;
+
+    const msg = document.createElement('span');
+    msg.className = 'log-message';
+    msg.textContent = roll.message;
+
+    entry.appendChild(player);
+    entry.appendChild(msg);
+    elements.rollLogContent.appendChild(entry);
+  });
 }
 
 // --- Roll handlers ---
 
-function rollD100WithSkill() {
+async function rollD100WithSkill() {
   const roll = rollD100();
   const skill = parseInt(elements.skillValue.value) || 0;
 
   if (skill > 0) {
     const outcome = interpretCoC(roll, skill);
     displayResult(padToTwoDigits(roll), outcome, `Skill: ${skill}%`);
-    addToLog(`d100: ${padToTwoDigits(roll)} vs ${skill}% → ${formatOutcome(outcome)}`, outcome);
+    await saveRoll(`d100: ${padToTwoDigits(roll)} vs ${skill}% → ${formatOutcome(outcome)}`, outcome);
   } else {
     displayResult(padToTwoDigits(roll), null, 'Enter skill % for interpretation');
-    addToLog(`d100: ${padToTwoDigits(roll)}`);
+    await saveRoll(`d100: ${padToTwoDigits(roll)}`);
   }
 }
 
-function rollTray() {
+async function rollTray() {
   if (tray.length === 0) {
-    rollD100WithSkill();
+    await rollD100WithSkill();
     return;
   }
   const results = tray.map(sides => ({ sides, result: rollDie(sides) }));
@@ -525,7 +774,7 @@ function rollTray() {
   const diceList = tray.map(sides => `d${sides}`).join(', ');
 
   displayResult(total, null, detail);
-  addToLog(`[${diceList}] → ${results.map(r => r.result).join(' + ')} = ${total}`);
+  await saveRoll(`[${diceList}] → ${results.map(r => r.result).join(' + ')} = ${total}`);
   clearTray();
 }
 
@@ -631,6 +880,10 @@ function setupEventListeners() {
     const gameId = e.target.value;
     if (!gameId) return;
     if (gameId === currentGameId) return;
+    if (!confirm('Switch the game for the whole party?')) {
+      e.target.value = currentGameId;
+      return;
+    }
     await switchGame(gameId);
   });
 
@@ -687,34 +940,6 @@ function setupEventListeners() {
     }
   });
 
-  // Paste avatar from clipboard anywhere on the page
-  window.addEventListener('paste', (e) => {
-    const editingTile = document.querySelector('.character-tile.editing');
-    if (!editingTile || !editingTile._uploadAvatar) return;
-    const cd = e.clipboardData;
-    if (!cd) return;
-
-    // Check items first (Chrome/Edge)
-    if (cd.items) {
-      for (const item of cd.items) {
-        if (item.type.startsWith('image/')) {
-          e.preventDefault();
-          editingTile._uploadAvatar(item.getAsFile());
-          return;
-        }
-      }
-    }
-    // Fallback to files (Firefox)
-    if (cd.files?.length) {
-      for (const file of cd.files) {
-        if (file.type.startsWith('image/')) {
-          e.preventDefault();
-          editingTile._uploadAvatar(file);
-          return;
-        }
-      }
-    }
-  });
 }
 
 // --- Initialize ---

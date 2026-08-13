@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Nunito:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Crimson+Pro:wght@400;500;600&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -84,6 +84,7 @@
       </div>
       <div class="grid-cell" id="slot-r3c3"></div>
     </main>
+    <div class="attribution">Icons by <a href="https://game-icons.net" target="_blank" rel="noopener">game-icons.net</a> (CC BY 3.0)</div>
   </div>
 
   <!-- Templates -->
@@ -103,12 +104,6 @@
       <div class="tile-info">
         <div class="tile-player-name"></div>
         <div class="tile-character-name"></div>
-        <input class="edit-player-name" placeholder="Your name">
-        <input class="edit-character-name" placeholder="Character name">
-      </div>
-      <div class="tile-avatar-upload">
-        <button class="btn-upload-avatar">Upload or Ctrl+V</button>
-        <input type="file" class="avatar-file-input" accept="image/*" style="display: none;">
       </div>
       <div class="tile-stats">
         <div class="stat" data-stat="hp">
@@ -130,32 +125,12 @@
           <button class="stat-inc">+</button>
         </div>
       </div>
-      <div class="tile-edit-actions">
-        <button class="btn-save-edit btn-roll">Save</button>
-        <button class="btn-cancel-edit btn-secondary">Cancel</button>
-      </div>
     </div>
   </template>
 
   <template id="add-character-template">
     <div class="add-character-tile">
       <button class="btn-add-character">+</button>
-      <form class="add-character-form" hidden>
-        <input name="playerName" placeholder="Your name" required>
-        <input name="characterName" placeholder="Character name" required>
-        <div class="add-char-stats">
-          <input name="hp" type="number" placeholder="HP" min="0" max="99">
-          <input name="sanity" type="number" placeholder="SAN" min="0" max="99">
-          <input name="luck" type="number" placeholder="Luck" min="0" max="99">
-        </div>
-        <label class="keeper-toggle">
-          <input type="checkbox" name="isKeeper"> I'm the Keeper
-        </label>
-        <div class="add-char-actions">
-          <button type="submit" class="btn-roll">Join</button>
-          <button type="button" class="add-char-cancel btn-secondary">Cancel</button>
-        </div>
-      </form>
     </div>
   </template>
 
@@ -181,6 +156,58 @@
           <button type="button" id="new-game-cancel" class="btn-secondary">Cancel</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Character Modal (create & edit) -->
+  <div id="char-modal" class="modal-overlay" hidden>
+    <div class="modal char-modal">
+      <h2 class="modal-title" id="char-modal-title">New Character</h2>
+      <form id="char-modal-form">
+        <div class="char-modal-portrait-wrap" id="char-modal-portrait-wrap">
+          <img id="char-modal-portrait" src="" alt="" draggable="false">
+          <div class="char-modal-portrait-hint">Click or Ctrl+V</div>
+        </div>
+        <input type="file" id="char-modal-file-input" accept="image/*" style="display: none;">
+        <input name="playerName" placeholder="Your name" required>
+        <input name="characterName" placeholder="Character name" required>
+        <div class="char-modal-stats" id="char-modal-stats">
+          <div class="char-modal-stat">
+            <label>HP</label>
+            <input name="hp" type="number" min="0" max="99">
+          </div>
+          <div class="char-modal-stat">
+            <label>SAN</label>
+            <input name="sanity" type="number" min="0" max="99">
+          </div>
+          <div class="char-modal-stat">
+            <label>Luck</label>
+            <input name="luck" type="number" min="0" max="99">
+          </div>
+        </div>
+        <label class="keeper-toggle" id="char-modal-keeper-toggle">
+          <input type="checkbox" name="isKeeper" id="char-modal-keeper-cb"> I'm the Keeper
+        </label>
+        <div class="modal-actions">
+          <button type="submit" class="btn-roll" id="char-modal-submit">Join</button>
+          <button type="button" id="char-modal-cancel" class="btn-secondary">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Portrait Crop Modal -->
+  <div id="crop-modal" class="modal-overlay" hidden>
+    <div class="modal crop-modal">
+      <h2 class="modal-title">Position Portrait</h2>
+      <div class="crop-viewport">
+        <img id="crop-image" draggable="false" alt="">
+      </div>
+      <p class="crop-hint">Drag to position, mouse wheel to zoom</p>
+      <div class="modal-actions">
+        <button type="button" id="crop-confirm" class="btn-roll">Save</button>
+        <button type="button" id="crop-cancel" class="btn-secondary">Cancel</button>
+      </div>
     </div>
   </div>
 
