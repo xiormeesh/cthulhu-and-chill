@@ -11,10 +11,13 @@ import { rollDie, rollDice, rollD100, interpretCoC } from './dice.js';
 
 // Firebase init
 const firebaseConfig = {
-  apiKey: 'demo-key',
-  projectId: 'demo-cthulhu-and-chill',
-  storageBucket: 'demo-cthulhu-and-chill.firebasestorage.app',
-  databaseURL: 'https://demo-cthulhu-and-chill-default-rtdb.firebaseio.com'
+  apiKey: 'AIzaSyDeXkwwToK0EpbWc_B-ZMVfyQYc3aH7j1g',
+  authDomain: 'katya-ai.firebaseapp.com',
+  projectId: 'katya-ai',
+  storageBucket: 'katya-ai.firebasestorage.app',
+  messagingSenderId: '996414421339',
+  appId: '1:996414421339:web:5c87bd6bbf1e6a270d827e',
+  databaseURL: 'https://katya-ai-default-rtdb.europe-west1.firebasedatabase.app',
 };
 
 const firebaseApp = initializeApp(firebaseConfig);
