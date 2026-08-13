@@ -1,0 +1,590 @@
+/* CSS Variables - Dark Theme Palette */
+:root {
+  /* Backgrounds */
+  --bg-dark: #1a1a2e;
+  --bg-mid: #16213e;
+  --bg-card: rgba(0, 0, 0, 0.7);
+  --border-card: rgba(255, 255, 255, 0.15);
+
+  /* Text */
+  --text: #c8c8d0;
+  --text-dim: rgba(200, 200, 208, 0.6);
+
+  /* Accent */
+  --accent: #9b8ec4;
+  --accent-hover: #b3a5d6;
+
+  /* Success tiers */
+  --success-critical: #f1c40f;
+  --success-extreme: #2ecc71;
+  --success-hard: #27ae60;
+  --success-regular: #1e8449;
+
+  /* Failure */
+  --failure: #c0392b;
+  --fumble: #e74c3c;
+
+  /* Fonts */
+  --font-main: 'Nunito', system-ui, sans-serif;
+  --font-heading: 'Cinzel', 'Times New Roman', serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+/* Reset and base */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-main);
+  color: var(--text);
+  background: var(--bg-dark);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+/* Background layer */
+#background-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: -1;
+  opacity: 0.3;
+}
+
+/* Container */
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  padding: 1rem;
+  gap: 1rem;
+}
+
+/* Top bar */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+}
+
+.top-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.game-title {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  color: var(--accent);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.title-icon {
+  color: var(--accent);
+  opacity: 0.8;
+}
+
+.game-select {
+  background: var(--bg-mid);
+  color: var(--text);
+  border: 1px solid var(--border-card);
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
+.music-link {
+  color: var(--text-dim);
+}
+
+.music-link a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.music-link a:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+/* Main grid */
+.main-grid {
+  display: grid;
+  grid-template-columns: 200px 1fr 200px;
+  grid-template-rows: 1fr;
+  gap: 1rem;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Tiles columns */
+.tiles-left,
+.tiles-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+}
+
+/* Dice area */
+.dice-area {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Preset buttons */
+.preset-buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-d100 {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.5rem;
+  font-size: 1.3rem;
+  font-family: var(--font-mono);
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-d100:hover {
+  background: var(--accent-hover);
+}
+
+.btn-die {
+  background: var(--bg-mid);
+  color: var(--text);
+  border: 1px solid var(--border-card);
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-die:hover {
+  background: var(--bg-dark);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Die tray */
+.die-tray {
+  background: var(--bg-mid);
+  border: 1px dashed var(--border-card);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  width: 100%;
+}
+
+.tray-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.btn-clear-tray {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border-card);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-clear-tray:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.tray-content {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  min-height: 1.5rem;
+}
+
+.tray-empty {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.die-chip {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-card);
+  border-radius: 4px;
+  padding: 0.25rem 0.75rem;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.die-chip:hover {
+  background: var(--failure);
+  border-color: var(--failure);
+  text-decoration: line-through;
+}
+
+/* Skill + Roll row */
+.skill-roll-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.skill-roll-row label {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+#skill-value {
+  background: var(--bg-mid);
+  color: var(--text);
+  border: 1px solid var(--border-card);
+  border-radius: 4px;
+  padding: 0.5rem;
+  width: 70px;
+  font-family: var(--font-mono);
+  text-align: center;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+#skill-value::-webkit-inner-spin-button,
+#skill-value::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Roll button */
+.btn-roll {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.6rem 2rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-roll:hover {
+  background: var(--accent-hover);
+}
+
+/* Result display */
+.result-display {
+  text-align: center;
+  padding: 0.75rem 1.5rem;
+  background: var(--bg-mid);
+  border-radius: 8px;
+  width: 100%;
+}
+
+.result-number {
+  font-family: var(--font-mono);
+  font-size: 3rem;
+  font-weight: bold;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.result-outcome {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-top: 0.25rem;
+  letter-spacing: 0.05em;
+}
+
+.result-display:not([class*="outcome-"]) .result-outcome {
+  color: var(--text-dim);
+  font-family: var(--font-main);
+  font-weight: 400;
+  font-size: 1rem;
+}
+
+.result-detail {
+  color: var(--text-dim);
+  margin-top: 0.15rem;
+  font-size: 0.85rem;
+}
+
+/* Outcome colors */
+.outcome-critical_success .result-number,
+.outcome-critical_success .result-outcome {
+  color: var(--success-critical);
+}
+
+.outcome-extreme_success .result-number,
+.outcome-extreme_success .result-outcome {
+  color: var(--success-extreme);
+}
+
+.outcome-hard_success .result-number,
+.outcome-hard_success .result-outcome {
+  color: var(--success-hard);
+}
+
+.outcome-regular_success .result-number,
+.outcome-regular_success .result-outcome {
+  color: var(--success-regular);
+}
+
+.outcome-failure .result-number,
+.outcome-failure .result-outcome {
+  color: var(--failure);
+}
+
+.outcome-fumble .result-number,
+.outcome-fumble .result-outcome {
+  color: var(--fumble);
+}
+
+/* Bottom row */
+.bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 1rem;
+  height: 150px;
+}
+
+.tiles-bottom {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+}
+
+/* Roll log */
+.roll-log {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.roll-log h3 {
+  font-family: var(--font-heading);
+  color: var(--accent);
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  letter-spacing: 0.05em;
+}
+
+.roll-log-content {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.log-empty {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.log-entry {
+  margin-bottom: 0.25rem;
+  padding: 0.25rem;
+  border-left: 2px solid transparent;
+  padding-left: 0.5rem;
+}
+
+.log-entry.critical_success {
+  border-color: var(--success-critical);
+  color: var(--success-critical);
+}
+
+.log-entry.extreme_success {
+  border-color: var(--success-extreme);
+  color: var(--success-extreme);
+}
+
+.log-entry.hard_success {
+  border-color: var(--success-hard);
+  color: var(--success-hard);
+}
+
+.log-entry.regular_success {
+  border-color: var(--success-regular);
+  color: var(--success-regular);
+}
+
+.log-entry.failure {
+  border-color: var(--failure);
+  color: var(--failure);
+}
+
+.log-entry.fumble {
+  border-color: var(--fumble);
+  color: var(--fumble);
+}
+
+/* Character tile */
+.character-tile {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  padding: 1rem;
+  min-width: 180px;
+}
+
+.tile-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.tile-portrait {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border-card);
+}
+
+.tile-name {
+  font-family: var(--font-heading);
+  font-weight: bold;
+  color: var(--accent);
+}
+
+.tile-stats {
+  margin-bottom: 0.5rem;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+.stat-label {
+  color: var(--text-dim);
+}
+
+.tile-notes {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  font-style: italic;
+  margin-top: 0.5rem;
+}
+
+/* Add character tile */
+.add-character-tile {
+  background: var(--bg-mid);
+  border: 2px dashed var(--border-card);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 180px;
+  min-height: 150px;
+}
+
+.btn-add-character {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-add-character:hover {
+  background: var(--accent);
+  color: var(--bg-dark);
+}
+
+/* Buttons */
+.btn-secondary {
+  background: var(--bg-mid);
+  color: var(--text);
+  border: 1px solid var(--border-card);
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-dark);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-mid);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-card);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}

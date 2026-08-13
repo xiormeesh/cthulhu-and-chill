@@ -4,21 +4,133 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cthulhu & Chill</title>
-  <style>
-    body {
-      background: #1a1a2e;
-      color: #c8c8d0;
-      font-family: system-ui, sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-    }
-    h1 { color: #9b8ec4; }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Nunito:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Cthulhu & Chill</h1>
+  <!-- Background layer -->
+  <div id="background-layer"></div>
+
+  <!-- Main container -->
+  <div class="container">
+    <!-- Top bar -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <h1 class="game-title"><svg class="title-icon" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="22"/><line x1="2" y1="12" x2="8" y2="12"/><line x1="16" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="8.46" y2="8.46"/><line x1="15.54" y1="15.54" x2="19.07" y2="19.07"/><line x1="4.93" y1="19.07" x2="8.46" y2="15.54"/><line x1="15.54" y1="8.46" x2="19.07" y2="4.93"/></svg> <span id="game-name">New Game</span></h1>
+        <select id="game-select" class="game-select">
+          <option value="">Select a game...</option>
+        </select>
+        <button id="new-game-btn" class="btn-secondary">New Game</button>
+      </div>
+      <div class="top-bar-right">
+        <div id="music-link-area" class="music-link">🎵 <a href="#" id="music-link">Music</a></div>
+        <button id="background-upload-btn" class="btn-secondary">Upload Background</button>
+        <input type="file" id="background-file-input" accept="image/*" style="display: none;">
+      </div>
+    </header>
+
+    <!-- Main grid area -->
+    <main class="main-grid">
+      <!-- Left tiles column -->
+      <aside class="tiles-left" id="tiles-left">
+        <!-- Character tiles will be added here -->
+      </aside>
+
+      <!-- Center: Dice roller -->
+      <section class="dice-area">
+        <!-- Result display (top, most prominent) -->
+        <div id="result-display" class="result-display">
+          <div class="result-number" id="result-number"></div>
+          <div class="result-outcome" id="result-outcome">Roll the dice</div>
+          <div class="result-detail" id="result-detail"></div>
+        </div>
+
+        <!-- Preset buttons -->
+        <div class="preset-buttons">
+          <button class="btn-d100" data-die="100">d100</button>
+          <button class="btn-die" data-die="4">d4</button>
+          <button class="btn-die" data-die="6">d6</button>
+          <button class="btn-die" data-die="8">d8</button>
+          <button class="btn-die" data-die="10">d10</button>
+          <button class="btn-die" data-die="12">d12</button>
+          <button class="btn-die" data-die="20">d20</button>
+        </div>
+
+        <!-- Die tray -->
+        <div class="die-tray">
+          <div class="tray-header">
+            <span>Dice Tray:</span>
+            <button id="clear-tray-btn" class="btn-clear-tray">Clear</button>
+          </div>
+          <div id="tray-content" class="tray-content">
+            <span class="tray-empty">Empty</span>
+          </div>
+        </div>
+
+        <!-- Skill input + Roll button -->
+        <div class="skill-roll-row">
+          <label for="skill-value">Skill %:</label>
+          <input type="number" id="skill-value" min="0" max="100">
+          <button id="roll-btn" class="btn-roll">ROLL</button>
+        </div>
+      </section>
+
+      <!-- Right tiles column -->
+      <aside class="tiles-right" id="tiles-right">
+        <!-- Character tiles will be added here -->
+      </aside>
+    </main>
+
+    <!-- Bottom row -->
+    <footer class="bottom-row">
+      <!-- Bottom tiles area -->
+      <div class="tiles-bottom" id="tiles-bottom">
+        <!-- Character tiles will be added here -->
+      </div>
+
+      <!-- Roll log -->
+      <div class="roll-log">
+        <h3>Roll Log</h3>
+        <div id="roll-log-content" class="roll-log-content">
+          <div class="log-empty">No rolls yet</div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Templates -->
+  <template id="character-tile-template">
+    <div class="character-tile" data-character-id="">
+      <div class="tile-header">
+        <img class="tile-portrait" src="" alt="">
+        <div class="tile-name"></div>
+      </div>
+      <div class="tile-stats">
+        <div class="stat-row">
+          <span class="stat-label">HP:</span>
+          <span class="stat-value hp-value"></span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">SAN:</span>
+          <span class="stat-value san-value"></span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">MP:</span>
+          <span class="stat-value mp-value"></span>
+        </div>
+      </div>
+      <div class="tile-notes"></div>
+    </div>
+  </template>
+
+  <template id="add-character-template">
+    <div class="add-character-tile">
+      <button class="btn-add-character">+ Add Character</button>
+    </div>
+  </template>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>

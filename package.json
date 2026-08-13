@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test test/",
+    "test": "node --test test/dice.test.js",
     "emulators": "npx firebase emulators:start",
     "serve": "python3 -m http.server 8080"
   },
